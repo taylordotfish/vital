@@ -126,7 +126,7 @@ clean:
 	$(MAKE) clean -C headless/builds/linux CONFIG=$(CONFIG)
 	$(MAKE) clean -C tests/builds/linux CONFIG=$(CONFIG)
 
-install_standalone: standalone install_icons
+install_standalone: standalone #install_icons
 	install -d $(BIN) $(MAN) $(CHANGES) $(DESKTOP)
 	install standalone/builds/linux/build/$(PROGRAM) $(BIN)
 	install -m644 standalone/vital.desktop $(DESKTOP)/vital.desktop
