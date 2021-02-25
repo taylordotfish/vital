@@ -271,8 +271,13 @@ const String makePluginFile (AudioProcessor* const filter, const int maxNumInput
     // UIs
     if (filter->hasEditor())
     {
-        text += "    ui:ui <" + pluginURI + "#ExternalUI> ,\n";
-        text += "          <" + pluginURI + "#ParentUI> ;\n";
+        // FIXME: Vital segfaults when the external UI is closed, so
+        // we're disabling it for now. The parent UI seems to be the
+        // default in at least Ardour and Carla anyway.
+
+        //text += "    ui:ui <" + pluginURI + "#ExternalUI> ,\n";
+        //text += "          <" + pluginURI + "#ParentUI> ;\n";
+        text += "    ui:ui <" + pluginURI + "#ParentUI> ;\n";
         text += "\n";
     }
 
