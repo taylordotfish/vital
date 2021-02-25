@@ -28,7 +28,9 @@ but essential for debugging and compiles much faster).
 (You can also try building the standalone version with `make standalone`,
 although it might not play well with JACK yet, and you can try building the
 VST3 version with `make vst3`, which installs to ~/.vst3, but I get crashes
-when opening the UI with the VST3 version.)
+when opening the UI with the VST3 version—please let me know if you *don’t*
+experience crashes with the VST3 version, as it may be an architecture- or
+host-specific issue.)
 
 Changes from upstream
 ---------------------
