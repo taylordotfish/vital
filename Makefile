@@ -31,9 +31,9 @@ endif
 endif
 endif
 
-PROGRAM = vital
-LIB_PROGRAM = Vital
-LIB_PROGRAM_FX = VitalFX
+PROGRAM = vial
+LIB_PROGRAM = Vial
+LIB_PROGRAM_FX = VialFX
 BIN = $(DESTDIR)/usr/bin
 BINFILE = $(BIN)/$(PROGRAM)
 LV2 = $(DESTDIR)/$(LIBDIR)/lv2/$(LIB_PROGRAM).lv2
@@ -131,7 +131,7 @@ install_standalone: standalone install_icons
 
 install_lv2: lv2
 	install -d $(LV2)
-	install -m644 plugin/builds/linux_lv2/Vital.lv2/* $(LV2)
+	install -m644 plugin/builds/linux_lv2/Vial.lv2/* $(LV2)
 
 install_effects_lv2: effects_lv2
 	install -d $(EFFECTS_LV2)
