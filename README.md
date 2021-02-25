@@ -53,7 +53,10 @@ Changes from upstream
   `ExternalUI` in Vial.ttl after building/installing, and see if you’re able to
   open and close the UI without crashes.)
 
-* Plugins are now installed to /usr/local/lib rather than /usr/lib.
+* Plugins are now installed to /usr/local/lib rather than /usr/lib. The
+  installation prefix can be configured via the Make variable `PREFIX`; it’s
+  `/usr/local` by default, but could be changed to, e.g., `/usr` by passing
+  `PREFIX=/usr` to `make`.
 
 * Added support for PowerPC (tested on ppc64le Debian). Requires [SIMDe] to be
   installed to the system include path.

@@ -1,10 +1,13 @@
+ifndef PREFIX
+	PREFIX=/usr/local
+endif
 
 ifndef CONFIG
 	CONFIG=Release
 endif
 
 ifndef LIBDIR
-	LIBDIR=/usr/local/lib/
+	LIBDIR=$(PREFIX)/lib
 endif
 
 BUILD_DATE="$(shell date +'%Y %m %d %H %M')"
@@ -34,24 +37,24 @@ endif
 PROGRAM = vial
 LIB_PROGRAM = Vial
 LIB_PROGRAM_FX = VialFX
-BIN = $(DESTDIR)/usr/bin
+BIN = $(PREFIX)/bin
 BINFILE = $(BIN)/$(PROGRAM)
-LV2 = $(DESTDIR)/$(LIBDIR)/lv2/$(LIB_PROGRAM).lv2
-EFFECTS_LV2 = $(DESTDIR)/$(LIBDIR)/lv2/$(LIB_PROGRAM_FX).lv2
-VSTDIR = $(DESTDIR)/$(LIBDIR)/vst
+LV2 = $(LIBDIR)/lv2/$(LIB_PROGRAM).lv2
+EFFECTS_LV2 = $(LIBDIR)/lv2/$(LIB_PROGRAM_FX).lv2
+VSTDIR = $(LIBDIR)/vst
 VST = $(VSTDIR)/$(LIB_PROGRAM).so
-VST3DIR = $(DESTDIR)/$(LIBDIR)/vst3
+VST3DIR = $(LIBDIR)/vst3
 VST3 = $(VST3DIR)/$(LIB_PROGRAM).vst3
 VST3SUBDIR = Contents/x86_64-linux
 EFFECTS_VST = $(VSTDIR)/$(LIB_PROGRAM_FX).so
 EFFECTS_VST3 = $(VST3DIR)/$(LIB_PROGRAM_FX).vst3
-SYSDATA = $(DESTDIR)/usr/share/$(PROGRAM)
-MAN = $(DESTDIR)/usr/share/man/man1/
-CHANGES = $(DESTDIR)/usr/share/doc/$(PROGRAM)/
-DESKTOP = $(DESTDIR)/usr/share/applications/
+SYSDATA = $(PREFIX)/share/$(PROGRAM)
+MAN = $(PREFIX)/share/man/man1/
+CHANGES = $(PREFIX)/share/doc/$(PROGRAM)/
+DESKTOP = $(PREFIX)/share/applications/
 ZIP_FOLDER = $(LIB_PROGRAM)Binaries
 
-ICONS      = $(DESTDIR)/usr/share/icons/hicolor/
+ICONS      = $(PREFIX)/share/icons/hicolor/
 ICON16     = images/vital_icon_16.png
 ICON22     = images/vital_icon_22.png
 ICON24     = images/vital_icon_24.png
@@ -60,7 +63,7 @@ ICON48     = images/vital_icon_48.png
 ICON64     = images/vital_icon_64.png
 ICON128    = images/vital_icon_128.png
 ICON256    = images/vital_icon_256.png
-XPMDEST    = $(DESTDIR)/usr/share/pixmaps
+XPMDEST    = $(PREFIX)/share/pixmaps
 ICONXPM    = images/vital.xpm
 
 ICONDEST16 = $(ICONS)/16x16/apps
