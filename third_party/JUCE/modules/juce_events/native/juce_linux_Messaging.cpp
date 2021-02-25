@@ -183,6 +183,7 @@ public:
                 {
                     {
                         ScopedValueSetter<bool> insideFdReadCallback (shouldDeferModifyingReadCallbacks, true);
+                        ScopedUnlock ul (lock);
                         fdAndCallback.second (fd);
                     }
 
