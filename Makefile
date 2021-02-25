@@ -155,7 +155,8 @@ install_effects_vst3: effects_vst3
 	install -d $(EFFECTS_VST3)/$(VST3SUBDIR)
 	install -m644 plugin/builds/linux_vst/build/VitalFX.vst3/$(VST3SUBDIR)/* $(EFFECTS_VST3)/$(VST3SUBDIR)
 
-install: install_standalone install_lv2 install_vst install_vst3
+install: install_lv2
+install_all: install_standalone install_lv2 install_vst install_vst3
 install_effects: install_effects_lv2 install_effects_vst install_effects_vst3
 
 dist:
