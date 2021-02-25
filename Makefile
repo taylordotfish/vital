@@ -72,6 +72,8 @@ ICONDEST64 = $(ICONS)/64x64/apps
 ICONDEST128 = $(ICONS)/128x128/apps
 ICONDEST256 = $(ICONS)/256x256/apps
 
+.DEFAULT_GOAL = lv2
+
 all: standalone vst vst3 lv2
 
 install_icons:
