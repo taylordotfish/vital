@@ -4,7 +4,7 @@ ifndef CONFIG
 endif
 
 ifndef LIBDIR
-	LIBDIR=/usr/lib/
+	LIBDIR=/usr/local/lib/
 endif
 
 BUILD_DATE="$(shell date +'%Y %m %d %H %M')"
