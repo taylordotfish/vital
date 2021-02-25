@@ -27,6 +27,7 @@
 #include "operators.h"
 #include "reorderable_effect_chain.h"
 #include "value_switch.h"
+#include "JuceHeader.h"
 
 namespace vital {
 
@@ -242,7 +243,9 @@ namespace vital {
   void SoundEngine::process(int num_samples) {
     VITAL_ASSERT(num_samples <= output()->buffer_size);
 
-    FloatVectorOperations::disableDenormalisedNumberSupport();
+    #if defined(JUCE_INTEL) || defined(JUCE_ARM)
+      FloatVectorOperations::disableDenormalisedNumberSupport();
+    #endif
     voice_handler_->setLegato(legato_->value());
     ProcessorRouter::process(num_samples);
 

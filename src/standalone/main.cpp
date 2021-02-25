@@ -93,12 +93,12 @@ class SynthApplication : public JUCEApplication {
 
         MainWindow(const String& name, bool visible) :
             DocumentWindow(name, Colours::lightgrey, DocumentWindow::allButtons, visible), editor_(nullptr) {
-          if (!Startup::isComputerCompatible()) {
+          /*if (!Startup::isComputerCompatible()) {
             String error = String(ProjectInfo::projectName) +
                            " requires SSE2, NEON or AVX2 compatible processor. Exiting.";
             AlertWindow::showNativeDialogBox("Computer not supported", error, false);
             quit();
-          }
+          }*/
 
           SystemStats::setApplicationCrashHandler(handleVitalCrash);
               

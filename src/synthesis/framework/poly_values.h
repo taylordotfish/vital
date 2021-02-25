@@ -28,10 +28,15 @@
 #elif defined(__ARM_NEON__) || defined(__ARM_NEON)
   #define VITAL_NEON 1
 #else
-  static_assert(false, "No SIMD Intrinsics found which are necessary for compilation");
+  //static_assert(false, "No SIMD Intrinsics found which are necessary for compilation");
+  #define VITAL_SSE2 1
+  #define VITAL_SIMDE 1
+  #define SIMDE_ENABLE_NATIVE_ALIASES
 #endif
 
-#if VITAL_SSE2
+#if VITAL_SIMDE
+  #include <simde/x86/sse2.h>
+#elif VITAL_SSE2
   #include <immintrin.h>
 #elif VITAL_NEON
   #include <arm_neon.h>
