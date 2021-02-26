@@ -119,21 +119,31 @@ public:
 
     void registerFdCallback (int fd, std::function<void (int)>&& cb, short eventMask)
     {
-        const ScopedLock sl (pendingChangesLock);
-        pollfd pfd = { fd, eventMask, 0 };
-        pendingAdditions.push_back({ fd, std::move (cb), pfd });
+        const ScopedLock sl (lock);
+
+        if (shouldDeferModifyingReadCallbacks)
+        {
+            deferredReadCallbackModifications.emplace_back ([this, fd, cb, eventMask]() mutable
+                                                            {
+                                                                registerFdCallback (fd, std::move (cb), eventMask);
+                                                            });
+            return;
+        }
+
+        fdReadCallbacks.push_back ({ fd, std::move (cb) });
+        pfds.push_back ({ fd, eventMask, 0 });
     }
 
     void unregisterFdCallback (int fd)
     {
-        const ScopedLock sl (pendingChangesLock);
-        pendingRemovals.push_back(fd);
-    }
+        const ScopedLock sl (lock);
 
-private:
-    // Immediately removes callbacks for `fd`. Not thread-safe.
-    void removeFdCallback (int fd)
-    {
+        if (shouldDeferModifyingReadCallbacks)
+        {
+            deferredReadCallbackModifications.emplace_back ([this, fd] { unregisterFdCallback (fd); });
+            return;
+        }
+
         {
             auto removePredicate = [=] (const std::pair<int, std::function<void (int)>>& cb)  { return cb.first == fd; };
 
@@ -149,41 +159,9 @@ private:
         }
     }
 
-    // Returns true if any changes were made.
-    bool applyPendingChanges()
-    {
-        ScopedLock sl (pendingChangesLock);
-        if (pendingAdditions.empty() && pendingRemovals.empty())
-        {
-            return false;
-        }
-
-        for (auto& addition : pendingAdditions)
-        {
-            int fd = std::get<0> (addition);
-            auto& cb = std::get<1> (addition);
-            pollfd pfd = std::get<2> (addition);
-
-            fdReadCallbacks.push_back ({ fd, std::move (cb) });
-            pfds.push_back (pfd);
-        }
-
-        for (int fd : pendingRemovals)
-        {
-            removeFdCallback (fd);
-        }
-
-        pendingAdditions.clear();
-        pendingRemovals.clear();
-        return true;
-    }
-
-public:
     bool dispatchPendingEvents()
     {
         const ScopedLock sl (lock);
-
-        applyPendingChanges();
 
         if (poll (&pfds.front(), static_cast<nfds_t> (pfds.size()), 0) == 0)
             return false;
@@ -203,10 +181,18 @@ public:
             {
                 if (fdAndCallback.first == fd)
                 {
-                    fdAndCallback.second (fd);
-
-                    if (applyPendingChanges())
                     {
+                        ScopedValueSetter<bool> insideFdReadCallback (shouldDeferModifyingReadCallbacks, true);
+                        fdAndCallback.second (fd);
+                    }
+
+                    if (! deferredReadCallbackModifications.empty())
+                    {
+                        for (auto& deferredRegisterEvent : deferredReadCallbackModifications)
+                            deferredRegisterEvent();
+
+                        deferredReadCallbackModifications.clear();
+
                         // elements may have been removed from the fdReadCallbacks/pfds array so we really need
                         // to call poll again
                         return true;
@@ -240,9 +226,8 @@ private:
     std::vector<std::pair<int, std::function<void (int)>>> fdReadCallbacks;
     std::vector<pollfd> pfds;
 
-    CriticalSection pendingChangesLock;
-    std::vector<std::tuple<int, std::function<void (int)>, pollfd>> pendingAdditions;
-    std::vector<int> pendingRemovals;
+    bool shouldDeferModifyingReadCallbacks = false;
+    std::vector<std::function<void()>> deferredReadCallbackModifications;
 };
 
 JUCE_IMPLEMENT_SINGLETON (InternalRunLoop)

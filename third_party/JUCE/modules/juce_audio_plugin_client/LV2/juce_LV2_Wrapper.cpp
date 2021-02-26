@@ -1854,7 +1854,22 @@ public:
     JuceLv2UIWrapper* getUI (LV2UI_Write_Function writeFunction, LV2UI_Controller controller, LV2UI_Widget* widget,
                              const LV2_Feature* const* features, bool isExternal)
     {
-        const MessageManagerLock mmLock;
+        // WORKAROUND: If we lock the message thread, `createEditorIfNeeded()`
+        // (called by `JuceLv2UIWrapper`'s constructor) eventually calls
+        // `XWindowSystem::initializeXDisplay()`, which tries to register a
+        // callback with `LinuxEventLoop::registerFdCallback()`, which obtains
+        // the lock in `InternalRunLoop`. But locking the message thread with
+        // a `MessageManagerLock` causes the message thread to block *while
+        // holding that same lock*, so we get a deadlock.
+        //
+        // As a workaround, we instantiate the UI on the message thread itself
+        // so that the call to `reigisterFdCallback()` in
+        // `initializeXDisplay()` won't deadlock. There really seems to be a
+        // bug in the implementation of `InternalRunLoop` in
+        // juce_linux_Messaging.cpp, but this workaround prevents us from
+        // having to modify internal JUCE code (aside from this LV2 wrapper).
+
+        //const MessageManagerLock mmLock;
 
         // FIXME: We get graphical glitches and crashes when Vital's UI is
         // opened, closed, and then opened again. As a workaround, we create
@@ -1868,8 +1883,14 @@ public:
         //else
         //    ui = new JuceLv2UIWrapper (filter, writeFunction, controller, widget, features, isExternal);
 
-        ui = nullptr;
-        ui = new JuceLv2UIWrapper (filter, writeFunction, controller, widget, features, isExternal);
+        WaitableEvent callbackDone;
+        MessageManager::callAsync ([&]
+        {
+            ui = nullptr;
+            ui = new JuceLv2UIWrapper (filter, writeFunction, controller, widget, features, isExternal);
+            callbackDone.signal();
+        });
+        callbackDone.wait();
         return ui;
     }
 
