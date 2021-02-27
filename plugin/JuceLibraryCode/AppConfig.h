@@ -51,7 +51,7 @@
 
 #define JUCE_USE_DARK_SPLASH_SCREEN 1
 
-#define JUCE_PROJUCER_VERSION 0x60005
+#define JUCE_PROJUCER_VERSION 0x60007
 
 //==============================================================================
 #define JUCE_MODULE_AVAILABLE_juce_audio_basics             1
@@ -145,7 +145,7 @@
 // juce_audio_plugin_client flags:
 
 #ifndef    JUCE_VST3_CAN_REPLACE_VST2
- #define JUCE_VST3_CAN_REPLACE_VST2 0
+ //#define JUCE_VST3_CAN_REPLACE_VST2 1
 #endif
 
 #ifndef    JUCE_FORCE_USE_LEGACY_PARAM_IDS
