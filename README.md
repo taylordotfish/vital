@@ -1,6 +1,9 @@
 Unofficial fork of Vital
 ========================
 
+**This is the `distrho-juce` branch.** If you just want a (possibly) working
+build, see the [`main` branch](https://github.com/taylordotfish/vital).
+
 This is an unofficial fork of [Vital] with changes aimed at use on GNU/Linux
 as an LV2 plugin.
 
