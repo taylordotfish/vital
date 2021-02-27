@@ -428,7 +428,6 @@ private:
     int xyToNote (Point<float>, float& mousePositionVelocity);
     int remappedXYToNote (Point<float>, float& mousePositionVelocity) const;
     void resetAnyKeysInUse();
-    void updateNoteUnderMouse (Point<float>, int note, bool isDown, int fingerNum);
     void updateNoteUnderMouse (Point<float>, bool isDown, int fingerNum);
     void updateNoteUnderMouse (const MouseEvent&, bool isDown);
     void repaintNote (int midiNoteNumber);

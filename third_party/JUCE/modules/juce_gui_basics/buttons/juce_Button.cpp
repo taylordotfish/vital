@@ -482,7 +482,10 @@ void Button::mouseDrag (const MouseEvent& e)
 
 bool Button::isMouseSourceOver (const MouseEvent& e)
 {
-    return getLocalBounds().toFloat().contains (e.position);
+    if (e.source.isTouch() || e.source.isPen())
+        return getLocalBounds().toFloat().contains (e.position);
+
+    return isMouseOver();
 }
 
 void Button::focusGained (FocusChangeType)

@@ -178,6 +178,7 @@ private:
     Rectangle<int> content;
     Point<int> arrowTip;
     int allowablePlacements;
+    DropShadowEffect shadow;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BubbleComponent)
 };

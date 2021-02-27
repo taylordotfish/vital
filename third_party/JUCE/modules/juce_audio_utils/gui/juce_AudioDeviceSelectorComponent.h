@@ -88,7 +88,7 @@ public:
 
     //==============================================================================
     /** @internal */
-    virtual void resized() override;
+    void resized() override;
     /** @internal */
     void timerCallback() override;
 

@@ -439,7 +439,7 @@ public:
 
         @see setBounds, ComponentListener::componentMovedOrResized
     */
-    virtual void setTopLeftPosition (Point<int> newTopLeftPosition);
+    void setTopLeftPosition (Point<int> newTopLeftPosition);
 
     /** Moves the component to a new position.
 
@@ -1942,7 +1942,7 @@ public:
     virtual void handleCommandMessage (int commandId);
 
     //==============================================================================
-   #if JUCE_MODAL_LOOPS_PERMITTED
+   #if JUCE_MODAL_LOOPS_PERMITTED || DOXYGEN
     /** Runs a component modally, waiting until the loop terminates.
 
         This method first makes the component visible, brings it to the front and
@@ -2283,17 +2283,6 @@ public:
         @see setViewportIgnoreDragFlag
     */
     bool getViewportIgnoreDragFlag() const noexcept                     { return flags.viewportIgnoreDragFlag; }
-
-    virtual float getPixelScaling() const { return 1.0f; }
-    float getTotalPixelScaling() const {
-      const Component* component = this;
-      float pixel_scaling = 1.0f;
-      while (component) {
-        pixel_scaling *= component->getPixelScaling();
-        component = component->getParentComponent();
-      }
-      return pixel_scaling;
-    }
 
 private:
     //==============================================================================

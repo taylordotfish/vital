@@ -70,7 +70,8 @@ public:
                                                         performAnyPendingRepaintsNow() method is called. */
         windowIgnoresKeyPresses     = (1 << 10),   /**< Tells the window not to catch any keypresses. This can
                                                         be used for things like plugin windows, to stop them interfering
-                                                        with the host's shortcut keys */
+                                                        with the host's shortcut keys. This will prevent the window from
+                                                        gaining keyboard focus. */
         windowIsSemiTransparent     = (1 << 30)    /**< Not intended for public use - makes a window transparent. */
 
     };
@@ -320,7 +321,7 @@ public:
 
     //==============================================================================
     void handleMouseEvent (MouseInputSource::InputSourceType type, Point<float> positionWithinPeer, ModifierKeys newMods, float pressure,
-                           float orientation, int64 time, PenDetails pen = {}, int touchIndex = 0);
+                           float orientation, int64 time, PenDetails pen = PenDetails(), int touchIndex = 0);
 
     void handleMouseWheel (MouseInputSource::InputSourceType type, Point<float> positionWithinPeer,
                            int64 time, const MouseWheelDetails&, int touchIndex = 0);
@@ -414,6 +415,8 @@ public:
 
 protected:
     //==============================================================================
+    static void forceDisplayUpdate();
+
     Component& component;
     const int styleFlags;
     Rectangle<int> lastNonFullscreenBounds;
@@ -423,12 +426,14 @@ protected:
 
 private:
     //==============================================================================
+    Component* getTargetForKeyPress();
+
     WeakReference<Component> lastFocusedComponent, dragAndDropTargetComponent;
     Component* lastDragAndDropCompUnderMouse = nullptr;
     const uint32 uniqueID;
     bool isWindowMinimised = false;
-    Component* getTargetForKeyPress();
 
+    //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ComponentPeer)
 };
 

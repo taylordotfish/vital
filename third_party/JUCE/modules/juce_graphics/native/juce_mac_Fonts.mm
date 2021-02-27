@@ -207,9 +207,7 @@ namespace CoreTextTypeLayout
     //==============================================================================
     static CFAttributedStringRef createCFAttributedString (const AttributedString& text)
     {
-       #if JUCE_IOS
-        auto rgbColourSpace = CGColorSpaceCreateWithName (kCGColorSpaceSRGB);
-       #endif
+        const detail::ColorSpacePtr rgbColourSpace { CGColorSpaceCreateWithName (kCGColorSpaceSRGB) };
 
         auto attribString = CFAttributedStringCreateMutable (kCFAllocatorDefault, 0);
         auto cfText = text.getText().toCFString();
@@ -260,18 +258,11 @@ namespace CoreTextTypeLayout
             {
                 auto col = attr.colour;
 
-               #if JUCE_IOS
                 const CGFloat components[] = { col.getFloatRed(),
                                                col.getFloatGreen(),
                                                col.getFloatBlue(),
                                                col.getFloatAlpha() };
-                auto colour = CGColorCreate (rgbColourSpace, components);
-               #else
-                auto colour = CGColorCreateGenericRGB (col.getFloatRed(),
-                                                       col.getFloatGreen(),
-                                                       col.getFloatBlue(),
-                                                       col.getFloatAlpha());
-               #endif
+                auto colour = CGColorCreate (rgbColourSpace.get(), components);
 
                 CFAttributedStringSetAttribute (attribString, range, kCTForegroundColorAttributeName, colour);
                 CGColorRelease (colour);
@@ -296,9 +287,6 @@ namespace CoreTextTypeLayout
         CFAttributedStringSetAttribute (attribString, CFRangeMake (0, CFAttributedStringGetLength (attribString)),
                                         kCTParagraphStyleAttributeName, ctParagraphStyleRef);
         CFRelease (ctParagraphStyleRef);
-       #if JUCE_IOS
-        CGColorSpaceRelease (rgbColourSpace);
-       #endif
         return attribString;
     }
 
@@ -371,20 +359,20 @@ namespace CoreTextTypeLayout
 
         auto verticalJustification = text.getJustification().getOnlyVerticalFlags();
 
-        auto ctFrameArea = [area, minCTFrameHeight, verticalJustification]
+        const Rectangle<float> ctFrameArea = [area, minCTFrameHeight, verticalJustification]
         {
             if (minCTFrameHeight < area.getHeight())
-                return area;
+                return Rectangle<float> (area);
 
             if (verticalJustification == Justification::verticallyCentred)
                 return area.withSizeKeepingCentre (area.getWidth(), minCTFrameHeight);
 
-            auto frameArea = area.withHeight (minCTFrameHeight);
+            const Rectangle<float> frameArea = area.withHeight (minCTFrameHeight);
 
             if (verticalJustification == Justification::bottom)
                 return frameArea.withBottomY (area.getBottom());
 
-            return frameArea;
+            return Rectangle<float> (frameArea);
         }();
 
         auto frame = createCTFrame (framesetter, CGRectMake ((CGFloat) ctFrameArea.getX(), flipHeight - (CGFloat) ctFrameArea.getBottom(),

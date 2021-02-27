@@ -31,7 +31,8 @@ namespace juce
 
     @tags{GUI}
 */
-class JUCE_API  CaretComponent   : public Component
+class JUCE_API  CaretComponent   : public Component,
+                                   private Timer
 {
 public:
     //==============================================================================
@@ -72,6 +73,7 @@ private:
     Component* owner;
 
     bool shouldBeShown() const;
+    void timerCallback() override;
 
     JUCE_DECLARE_NON_COPYABLE (CaretComponent)
 };

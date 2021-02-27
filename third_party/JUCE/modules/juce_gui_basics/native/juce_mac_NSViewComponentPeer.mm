@@ -100,7 +100,7 @@ public:
         notificationCenter = [NSNotificationCenter defaultCenter];
 
         [notificationCenter  addObserver: view
-                                selector: @selector (frameChanged:)
+                                selector: frameChangedSelector
                                     name: NSViewFrameDidChangeNotification
                                   object: view];
 
@@ -171,12 +171,12 @@ public:
            #endif
 
             [notificationCenter  addObserver: view
-                                    selector: @selector (frameChanged:)
+                                    selector: frameChangedSelector
                                         name: NSWindowDidMoveNotification
                                       object: window];
 
             [notificationCenter  addObserver: view
-                                    selector: @selector (frameChanged:)
+                                    selector: frameChangedSelector
                                         name: NSWindowDidMiniaturizeNotification
                                       object: window];
 
@@ -717,6 +717,17 @@ public:
 
     void redirectWillMoveToWindow (NSWindow* newWindow)
     {
+        if (auto* currentWindow = [view window])
+        {
+            [notificationCenter removeObserver: view
+                                          name: NSWindowDidMoveNotification
+                                        object: currentWindow];
+
+            [notificationCenter removeObserver: view
+                                          name: NSWindowWillMiniaturizeNotification
+                                        object: currentWindow];
+        }
+
         if (isSharedWindow && [view window] == window && newWindow == nullptr)
         {
             if (auto* comp = safeComponent.get())
@@ -852,6 +863,14 @@ public:
         if ([screen respondsToSelector: @selector (backingScaleFactor)])
             displayScale = (float) screen.backingScaleFactor;
 
+        auto invalidateTransparentWindowShadow = [this]
+        {
+            // transparent NSWindows with a drop-shadow need to redraw their shadow when the content
+            // changes to avoid stale shadows being drawn behind the window
+            if (! isSharedWindow && ! [window isOpaque] && [window hasShadow])
+                [window invalidateShadow];
+        };
+
        #if USE_COREGRAPHICS_RENDERING && JUCE_COREGRAPHICS_RENDER_WITH_MULTIPLE_PAINT_CALLS
         // This option invokes a separate paint call for each rectangle of the clip region.
         // It's a long story, but this is a basically a workaround for a CGContext not having
@@ -873,12 +892,14 @@ public:
                     CGContextRestoreGState (cg);
                 }
 
+                invalidateTransparentWindowShadow();
                 return;
             }
         }
        #endif
 
         drawRect (cg, r, displayScale);
+        invalidateTransparentWindowShadow();
     }
 
     void drawRect (CGContextRef cg, NSRect r, float displayScale)
@@ -922,9 +943,8 @@ public:
                     invokePaint (*context);
                 }
 
-                CGColorSpaceRef colourSpace = CGColorSpaceCreateWithName (kCGColorSpaceSRGB);
-                CGImageRef image = juce_createCoreGraphicsImage (temp, colourSpace, false);
-                CGColorSpaceRelease (colourSpace);
+                detail::ColorSpacePtr colourSpace { CGColorSpaceCreateWithName (kCGColorSpaceSRGB) };
+                CGImageRef image = juce_createCoreGraphicsImage (temp, colourSpace.get(), false);
                 CGContextDrawImage (cg, CGRectMake (r.origin.x, r.origin.y, clipW, clipH), image);
                 CGImageRelease (image);
             }
@@ -1048,6 +1068,11 @@ public:
         grabFocus();
     }
 
+    void resignKeyWindow()
+    {
+        viewFocusLoss();
+    }
+
     bool windowShouldClose()
     {
         if (! isValidPeer (this))
@@ -1075,6 +1100,25 @@ public:
             if (shouldSetVisible)
                 getComponent().setVisible (true);
         }
+
+        if (auto* currentWindow = [view window])
+        {
+            [notificationCenter addObserver: view
+                                   selector: dismissModalsSelector
+                                       name: NSWindowDidMoveNotification
+                                     object: currentWindow];
+
+            [notificationCenter addObserver: view
+                                   selector: dismissModalsSelector
+                                       name: NSWindowWillMiniaturizeNotification
+                                     object: currentWindow];
+        }
+    }
+
+    void dismissModals()
+    {
+        if (hasNativeTitleBar() || isSharedWindow)
+            sendModalInputAttemptIfBlocked();
     }
 
     void liveResizingStart()
@@ -1393,7 +1437,7 @@ public:
 
     void grabFocus() override
     {
-        if (window != nil)
+        if (window != nil && [window canBecomeKeyWindow])
         {
             [window makeKeyWindow];
             [window makeFirstResponder: view];
@@ -1439,6 +1483,11 @@ public:
     static ComponentPeer* currentlyFocusedPeer;
     static Array<int> keysCurrentlyDown;
     static int insideToFrontCall;
+
+    static const SEL dismissModalsSelector;
+    static const SEL frameChangedSelector;
+    static const SEL asyncMouseDownSelector;
+    static const SEL asyncMouseUpSelector;
 
 private:
     static NSView* createViewInstance();
@@ -1534,17 +1583,21 @@ private:
             case NSEventTypeSystemDefined:
             case NSEventTypeApplicationDefined:
             case NSEventTypePeriodic:
+           #if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_8
             case NSEventTypeGesture:
+           #endif
             case NSEventTypeMagnify:
             case NSEventTypeSwipe:
             case NSEventTypeRotate:
             case NSEventTypeBeginGesture:
             case NSEventTypeEndGesture:
             case NSEventTypeQuickLook:
-           #if JUCE_64BIT
+          #if JUCE_64BIT
             case NSEventTypeSmartMagnify:
+           #if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_8
             case NSEventTypePressure:
            #endif
+          #endif
           #if defined (MAC_OS_X_VERSION_10_12) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12
            #if JUCE_64BIT
             case NSEventTypeDirectTouch:
@@ -1603,6 +1656,13 @@ private:
 
 int NSViewComponentPeer::insideToFrontCall = 0;
 
+JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wundeclared-selector")
+const SEL NSViewComponentPeer::dismissModalsSelector  = @selector (dismissModals);
+const SEL NSViewComponentPeer::frameChangedSelector   = @selector (frameChanged:);
+const SEL NSViewComponentPeer::asyncMouseDownSelector = @selector (asyncMouseDown:);
+const SEL NSViewComponentPeer::asyncMouseUpSelector   = @selector (asyncMouseUp:);
+JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+
 //==============================================================================
 struct JuceNSViewClass   : public ObjCClass<NSView>
 {
@@ -1613,9 +1673,7 @@ struct JuceNSViewClass   : public ObjCClass<NSView>
         addMethod (@selector (isOpaque),                      isOpaque,                   "c@:");
         addMethod (@selector (drawRect:),                     drawRect,                   "v@:", @encode (NSRect));
         addMethod (@selector (mouseDown:),                    mouseDown,                  "v@:@");
-        addMethod (@selector (asyncMouseDown:),               asyncMouseDown,             "v@:@");
         addMethod (@selector (mouseUp:),                      mouseUp,                    "v@:@");
-        addMethod (@selector (asyncMouseUp:),                 asyncMouseUp,               "v@:@");
         addMethod (@selector (mouseDragged:),                 mouseDragged,               "v@:@");
         addMethod (@selector (mouseMoved:),                   mouseMoved,                 "v@:@");
         addMethod (@selector (mouseEntered:),                 mouseEntered,               "v@:@");
@@ -1629,12 +1687,13 @@ struct JuceNSViewClass   : public ObjCClass<NSView>
         addMethod (@selector (scrollWheel:),                  scrollWheel,                "v@:@");
         addMethod (@selector (magnifyWithEvent:),             magnify,                    "v@:@");
         addMethod (@selector (acceptsFirstMouse:),            acceptsFirstMouse,          "c@:@");
-        addMethod (@selector (frameChanged:),                 frameChanged,               "v@:@");
         addMethod (@selector (windowWillMiniaturize:),        windowWillMiniaturize,      "v@:@");
         addMethod (@selector (windowDidDeminiaturize:),       windowDidDeminiaturize,     "v@:@");
-        addMethod (@selector (wantsDefaultClipping:),         wantsDefaultClipping,       "c@:");
+        addMethod (@selector (wantsDefaultClipping),          wantsDefaultClipping,       "c@:");
         addMethod (@selector (worksWhenModal),                worksWhenModal,             "c@:");
+        addMethod (@selector (viewWillMoveToWindow:),         willMoveToWindow,           "v@:@");
         addMethod (@selector (viewDidMoveToWindow),           viewDidMoveToWindow,        "v@:");
+        addMethod (@selector (viewWillDraw),                  viewWillDraw,               "v@:");
         addMethod (@selector (keyDown:),                      keyDown,                    "v@:@");
         addMethod (@selector (keyUp:),                        keyUp,                      "v@:@");
         addMethod (@selector (insertText:),                   insertText,                 "v@:@");
@@ -1668,7 +1727,10 @@ struct JuceNSViewClass   : public ObjCClass<NSView>
         addMethod (@selector (cut:),                          cut,                        "v@:@");
         addMethod (@selector (selectAll:),                    selectAll,                  "v@:@");
 
-        addMethod (@selector (viewWillMoveToWindow:),         willMoveToWindow,           "v@:@");
+        addMethod (NSViewComponentPeer::dismissModalsSelector,  dismissModals,            "v@:");
+        addMethod (NSViewComponentPeer::asyncMouseDownSelector, asyncMouseDown,           "v@:@");
+        addMethod (NSViewComponentPeer::asyncMouseUpSelector,   asyncMouseUp,             "v@:@");
+        addMethod (NSViewComponentPeer::frameChangedSelector,   frameChanged,             "v@:@");
 
         addProtocol (@protocol (NSTextInput));
 
@@ -1684,27 +1746,35 @@ private:
     static void mouseDown (id self, SEL s, NSEvent* ev)
     {
         if (JUCEApplicationBase::isStandaloneApp())
+        {
             asyncMouseDown (self, s, ev);
+        }
         else
+        {
             // In some host situations, the host will stop modal loops from working
             // correctly if they're called from a mouse event, so we'll trigger
             // the event asynchronously..
-            [self performSelectorOnMainThread: @selector (asyncMouseDown:)
+            [self performSelectorOnMainThread: NSViewComponentPeer::asyncMouseDownSelector
                                    withObject: ev
                                 waitUntilDone: NO];
+        }
     }
 
     static void mouseUp (id self, SEL s, NSEvent* ev)
     {
         if (JUCEApplicationBase::isStandaloneApp())
+        {
             asyncMouseUp (self, s, ev);
+        }
         else
+        {
             // In some host situations, the host will stop modal loops from working
             // correctly if they're called from a mouse event, so we'll trigger
             // the event asynchronously..
-            [self performSelectorOnMainThread: @selector (asyncMouseUp:)
+            [self performSelectorOnMainThread: NSViewComponentPeer::asyncMouseUpSelector
                                    withObject: ev
                                 waitUntilDone: NO];
+        }
     }
 
     static void asyncMouseDown   (id self, SEL, NSEvent* ev)   { if (auto* p = getOwner (self)) p->redirectMouseDown  (ev); }
@@ -1728,6 +1798,22 @@ private:
     static void drawRect (id self, SEL, NSRect r)              { if (auto* p = getOwner (self)) p->drawRect (r); }
     static void frameChanged (id self, SEL, NSNotification*)   { if (auto* p = getOwner (self)) p->redirectMovedOrResized(); }
     static void viewDidMoveToWindow (id self, SEL)             { if (auto* p = getOwner (self)) p->viewMovedToWindow(); }
+    static void dismissModals (id self, SEL)                   { if (auto* p = getOwner (self)) p->dismissModals(); }
+
+    static void viewWillDraw (id self, SEL)
+    {
+        // Without setting contentsFormat macOS Big Sur will always set the invalid area
+        // to be the entire frame.
+       #if defined (MAC_OS_X_VERSION_10_12) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12
+        if (NSFoundationVersionNumber > (double) NSFoundationVersionNumber10_11_Max)
+        {
+            CALayer* layer = ((NSView*) self).layer;
+            layer.contentsFormat = kCAContentsFormatRGBA8Uint;
+        }
+       #endif
+
+        sendSuperclassMessage<void> (self, @selector (viewWillDraw));
+    }
 
     static void windowWillMiniaturize (id self, SEL, NSNotification*)
     {
@@ -1987,13 +2073,13 @@ struct JuceNSWindowClass   : public ObjCClass<NSWindow>
         addMethod (@selector (canBecomeKeyWindow),                  canBecomeKeyWindow,        "c@:");
         addMethod (@selector (canBecomeMainWindow),                 canBecomeMainWindow,       "c@:");
         addMethod (@selector (becomeKeyWindow),                     becomeKeyWindow,           "v@:");
+        addMethod (@selector (resignKeyWindow),                     resignKeyWindow,           "v@:");
         addMethod (@selector (windowShouldClose:),                  windowShouldClose,         "c@:@");
         addMethod (@selector (constrainFrameRect:toScreen:),        constrainFrameRect,        @encode (NSRect), "@:",  @encode (NSRect), "@");
         addMethod (@selector (windowWillResize:toSize:),            windowWillResize,          @encode (NSSize), "@:@", @encode (NSSize));
         addMethod (@selector (windowDidExitFullScreen:),            windowDidExitFullScreen,   "v@:@");
         addMethod (@selector (windowWillEnterFullScreen:),          windowWillEnterFullScreen, "v@:@");
         addMethod (@selector (zoom:),                               zoom,                      "v@:@");
-        addMethod (@selector (windowWillMove:),                     windowWillMove,            "v@:@");
         addMethod (@selector (windowWillStartLiveResize:),          windowWillStartLiveResize, "v@:@");
         addMethod (@selector (windowDidEndLiveResize:),             windowDidEndLiveResize,    "v@:@");
         addMethod (@selector (window:shouldPopUpDocumentPathMenu:), shouldPopUpPathMenu, "B@:@", @encode (NSMenu*));
@@ -2049,6 +2135,14 @@ private:
         }
     }
 
+    static void resignKeyWindow (id self, SEL)
+    {
+        sendSuperclassMessage<void> (self, @selector (resignKeyWindow));
+
+        if (auto* owner = getOwner (self))
+            owner->resignKeyWindow();
+    }
+
     static BOOL windowShouldClose (id self, SEL, id /*window*/)
     {
         auto* owner = getOwner (self);
@@ -2081,8 +2175,7 @@ private:
 
         frameRect = owner->constrainRect (frameRect);
 
-        if (owner->hasNativeTitleBar())
-            owner->sendModalInputAttemptIfBlocked();
+        owner->dismissModals();
 
         return frameRect.size;
     }
@@ -2114,13 +2207,6 @@ private:
 
             owner->redirectMovedOrResized();
         }
-    }
-
-    static void windowWillMove (id self, SEL, NSNotification*)
-    {
-        if (auto* owner = getOwner (self))
-            if (owner->hasNativeTitleBar())
-                owner->sendModalInputAttemptIfBlocked();
     }
 
     static void windowWillStartLiveResize (id self, SEL, NSNotification*)

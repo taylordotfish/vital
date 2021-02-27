@@ -65,7 +65,7 @@
 #elif defined (__FreeBSD__) || (__OpenBSD__)
   #define       JUCE_BSD 1
 #elif defined (LINUX) || defined (__linux__)
-  #define     JUCE_LINUX 1
+  #define       JUCE_LINUX 1
 #elif defined (__APPLE_CPP__) || defined (__APPLE_CC__)
   #define CF_EXCLUDE_CSTD_HEADERS 1
   #include <TargetConditionals.h> // (needed to find out what platform we're using)
@@ -78,6 +78,8 @@
   #else
     #define     JUCE_MAC 1
   #endif
+#elif defined (__wasm__)
+  #define       JUCE_WASM 1
 #else
   #error "Unknown platform!"
 #endif
@@ -143,8 +145,8 @@
   #endif
 
   #if JUCE_MAC
-    #if ! defined (MAC_OS_X_VERSION_10_11)
-      #error "The 10.11 SDK (Xcode 7.3.1+) is required to build JUCE apps. You can create apps that run on macOS 10.7+ by changing the deployment target."
+    #if ! defined (MAC_OS_X_VERSION_10_8)
+      #error "The 10.8 SDK is required to build JUCE apps. You can create apps that run on macOS 10.7+ by changing the deployment target."
     #elif MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
       #error "Building for OSX 10.6 is no longer supported!"
     #endif

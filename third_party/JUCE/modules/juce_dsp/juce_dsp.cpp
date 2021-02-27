@@ -54,8 +54,6 @@
  #define JUCE_IPP_AVAILABLE 1
 #endif
 
-#include "containers/juce_FixedSizeFunction.h"
-
 #include "processors/juce_FIRFilter.cpp"
 #include "processors/juce_IIRFilter.cpp"
 #include "processors/juce_FirstOrderTPTFilter.cpp"
@@ -70,6 +68,7 @@
 #include "maths/juce_Matrix.cpp"
 #include "maths/juce_LookupTable.cpp"
 #include "frequency/juce_FFT.cpp"
+#include "frequency/juce_Convolution.cpp"
 #include "frequency/juce_Windowing.cpp"
 #include "filter_design/juce_FilterDesign.cpp"
 #include "widgets/juce_LadderFilter.cpp"

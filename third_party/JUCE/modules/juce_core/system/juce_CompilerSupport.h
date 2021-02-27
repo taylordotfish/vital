@@ -92,7 +92,7 @@
 
 //==============================================================================
 // C++ library
-#if (defined (__GLIBCXX__) && __GLIBCXX__ < 20130322) || (defined(_LIBCPP_VERSION) && (_LIBCPP_VERSION < 3700))
+#if (defined (__GLIBCXX__) && __GLIBCXX__ < 20130322)
  #error "JUCE requires a C++ library containing std::atomic"
 #endif
 
@@ -100,7 +100,7 @@
 #if (! JUCE_MSVC) && (! JUCE_CXX14_IS_AVAILABLE)
 namespace std
 {
-    template<typename T, typename... Args>
+    template <typename T, typename... Args>
     unique_ptr<T> make_unique (Args&&... args)
     {
         return unique_ptr<T> (new T (std::forward<Args> (args)...));

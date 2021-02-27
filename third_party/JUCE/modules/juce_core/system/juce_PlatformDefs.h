@@ -59,15 +59,13 @@ namespace juce
 #endif
 
 //==============================================================================
-#if JUCE_IOS || JUCE_LINUX
+#if JUCE_IOS || (JUCE_MAC && JUCE_ARM) || JUCE_LINUX
   /** This will try to break into the debugger if the app is currently being debugged.
       If called by an app that's not being debugged, the behaviour isn't defined - it may
       crash or not, depending on the platform.
       @see jassert()
   */
   #define JUCE_BREAK_IN_DEBUGGER        { ::kill (0, SIGTRAP); }
-#elif JUCE_MAC && JUCE_CLANG && JUCE_ARM
-  #define JUCE_BREAK_IN_DEBUGGER        { __builtin_debugtrap(); }
 #elif JUCE_MSVC
   #ifndef __INTEL_COMPILER
     #pragma intrinsic (__debugbreak)
@@ -101,11 +99,7 @@ namespace juce
     deliberately and want to ignore the warning.
 */
 #if JUCE_CLANG
- #if __has_cpp_attribute(clang::fallthrough)
-  #define JUCE_FALLTHROUGH [[clang::fallthrough]];
- #else
-  #define JUCE_FALLTHROUGH
- #endif
+ #define JUCE_FALLTHROUGH [[clang::fallthrough]];
 #elif JUCE_GCC
  #if __GNUC__ >= 7
   #define JUCE_FALLTHROUGH [[gnu::fallthrough]];

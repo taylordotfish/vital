@@ -35,7 +35,7 @@
 
   ID:                 juce_gui_extra
   vendor:             juce
-  version:            6.0.5
+  version:            6.0.7
   name:               JUCE extended GUI classes
   description:        Miscellaneous GUI classes for specialised tasks.
   website:            http://www.juce.com/juce
@@ -115,7 +115,9 @@
 #include "misc/juce_PushNotifications.h"
 #include "misc/juce_RecentlyOpenedFilesList.h"
 #include "misc/juce_SplashScreen.h"
+#if !JUCE_MAC || MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_8
 #include "misc/juce_SystemTrayIconComponent.h"
+#endif
 #include "misc/juce_WebBrowserComponent.h"
 #include "misc/juce_LiveConstantEditor.h"
 #include "misc/juce_AnimatedAppComponent.h"

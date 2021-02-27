@@ -387,10 +387,6 @@ struct Component::ComponentHelpers
     template <typename PointOrRect>
     static PointOrRect convertCoordinate (const Component* target, const Component* source, PointOrRect p)
     {
-        float total_scaling = source->getTotalPixelScaling();
-        Component* top = nullptr;
-        if (source)
-            top = source->getTopLevelComponent();
         while (source != nullptr)
         {
             if (source == target)
@@ -398,9 +394,6 @@ struct Component::ComponentHelpers
 
             if (source->isParentOf (target))
                 return convertFromDistantParentSpace (source, *target, p);
-
-            if (source == top)
-              p /= total_scaling;
 
             p = convertToParentSpace (*source, p);
             source = source->getParentComponent();
@@ -496,7 +489,7 @@ Component::~Component()
 
     if (parentComponent != nullptr)
         parentComponent->removeChildComponent (parentComponent->childComponentList.indexOf (this), true, false);
-    else if (currentlyFocusedComponent == this || isParentOf (currentlyFocusedComponent))
+    else if (hasKeyboardFocus (true))
         giveAwayFocus (currentlyFocusedComponent != this);
 
     if (flags.hasHeavyweightPeerFlag)
@@ -553,11 +546,12 @@ void Component::setVisible (bool shouldBeVisible)
         {
             ComponentHelpers::releaseAllCachedImageResources (*this);
 
-            if (currentlyFocusedComponent == this || isParentOf (currentlyFocusedComponent))
+            if (hasKeyboardFocus (true))
             {
                 if (parentComponent != nullptr)
                     parentComponent->grabKeyboardFocus();
-                else
+
+                if (hasKeyboardFocus (true))
                     giveAwayFocus (true);
             }
         }
@@ -1188,7 +1182,12 @@ void Component::sendMovedResizedMessages (bool wasMoved, bool wasResized)
         parentComponent->childBoundsChanged (this);
 
     if (! checker.shouldBailOut())
-        componentListeners.callChecked (checker, [=] (ComponentListener& l) { l.componentMovedOrResized (*this, wasMoved, wasResized); });
+    {
+        componentListeners.callChecked (checker, [this, wasMoved, wasResized] (ComponentListener& l)
+        {
+            l.componentMovedOrResized (*this, wasMoved, wasResized);
+        });
+    }
 }
 
 void Component::setSize (int w, int h)                  { setBounds (getX(), getY(), w, h); }
@@ -1391,14 +1390,13 @@ bool Component::reallyContains (Point<int> point, bool returnTrueIfWithinAChild)
 
 Component* Component::getComponentAt (Point<int> position)
 {
-    Point<int> scale = (position.toFloat() * getPixelScaling()).roundToInt();
     if (flags.visibleFlag && ComponentHelpers::hitTest (*this, position))
     {
         for (int i = childComponentList.size(); --i >= 0;)
         {
             auto* child = childComponentList.getUnchecked(i);
 
-            child = child->getComponentAt (ComponentHelpers::convertFromParentSpace (*child, scale));
+            child = child->getComponentAt (ComponentHelpers::convertFromParentSpace (*child, position));
 
             if (child != nullptr)
                 return child;
@@ -2597,6 +2595,9 @@ void Component::internalMagnifyGesture (MouseInputSource source, Point<float> re
 
 void Component::sendFakeMouseMove() const
 {
+    if (flags.ignoresMouseClicksFlag && ! flags.allowChildMouseClicksFlag)
+        return;
+
     auto mainMouse = Desktop::getInstance().getMainMouseSource();
 
     if (! mainMouse.isDragging())
@@ -3012,8 +3013,7 @@ void Component::modifierKeysChanged (const ModifierKeys& modifiers)
 
 void Component::internalModifierKeysChanged()
 {
-    auto mainMouse = Desktop::getInstance().getMainMouseSource();
-    mainMouse.triggerFakeMove();
+    sendFakeMouseMove();
     modifierKeysChanged (ModifierKeys::currentModifiers);
 }
 

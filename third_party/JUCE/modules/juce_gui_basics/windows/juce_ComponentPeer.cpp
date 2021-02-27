@@ -474,7 +474,7 @@ bool ComponentPeer::handleDragMove (const ComponentPeer::DragInfo& info)
             if (DragHelpers::isSuitableTarget (info, newTarget))
             {
                 dragAndDropTargetComponent = newTarget;
-                auto pos = newTarget->getLocalPoint (&component, info.position * newTarget->getTotalPixelScaling());
+                auto pos = newTarget->getLocalPoint (&component, info.position);
 
                 if (DragHelpers::isFileDrag (info))
                     dynamic_cast<FileDragAndDropTarget*> (newTarget)->fileDragEnter (info.files, pos.x, pos.y);
@@ -491,7 +491,7 @@ bool ComponentPeer::handleDragMove (const ComponentPeer::DragInfo& info)
     if (! DragHelpers::isSuitableTarget (info, newTarget))
         return false;
 
-    auto pos = newTarget->getLocalPoint (&component, info.position * newTarget->getTotalPixelScaling());
+    auto pos = newTarget->getLocalPoint (&component, info.position);
 
     if (DragHelpers::isFileDrag (info))
         dynamic_cast<FileDragAndDropTarget*> (newTarget)->fileDragMove (info.files, pos.x, pos.y);
@@ -584,5 +584,10 @@ ModifierKeys ComponentPeer::getCurrentModifiersRealtime() noexcept
     return ModifierKeys::currentModifiers;
 }
 
+//==============================================================================
+void ComponentPeer::forceDisplayUpdate()
+{
+    Desktop::getInstance().displays->refresh();
+}
 
 } // namespace juce

@@ -43,9 +43,14 @@ void CaretComponent::paint (Graphics& g)
     g.fillRect (getLocalBounds());
 }
 
+void CaretComponent::timerCallback()
+{
+    setVisible (shouldBeShown() && ! isVisible());
+}
 
 void CaretComponent::setCaretPosition (const Rectangle<int>& characterArea)
 {
+    startTimer (380);
     setVisible (shouldBeShown());
     setBounds (characterArea.withWidth (2));
 }

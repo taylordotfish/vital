@@ -926,6 +926,7 @@ public:
     */
     virtual void setNonRealtime (bool isNonRealtime) noexcept;
 
+   #if ! JUCE_AUDIOPROCESSOR_NO_GUI
     //==============================================================================
     /** Creates the processor's GUI.
 
@@ -975,6 +976,7 @@ public:
         This may call createEditor() internally to create the component.
     */
     AudioProcessorEditor* createEditorIfNeeded();
+   #endif
 
     //==============================================================================
     /** Returns the default number of steps for a parameter.
@@ -991,7 +993,7 @@ public:
         It sends a hint to the host that something like the program, number of parameters,
         etc, has changed, and that it should update itself.
     */
-    void updateHostDisplay();
+    void updateHostDisplay (const AudioProcessorListener::ChangeDetails& details = {});
 
     //==============================================================================
     /** Adds a parameter to the AudioProcessor.
@@ -1117,6 +1119,11 @@ public:
     virtual void processorLayoutsChanged();
 
     //==============================================================================
+    /** LV2 specific calls, saving/restore as string. */
+    virtual String getStateInformationString () { return String(); }
+    virtual void setStateInformationString (const String&) {}
+
+    //==============================================================================
     /** Adds a listener that will be called when an aspect of this processor changes. */
     virtual void addListener (AudioProcessorListener* newListener);
 
@@ -1184,11 +1191,13 @@ public:
         String xMeterID, yMeterID;
     };
 
-    virtual CurveData getResponseCurve (CurveData::Type /*curveType*/) const      { return {}; }
+    virtual CurveData getResponseCurve (CurveData::Type /*curveType*/) const      { return CurveData(); }
 
+   #if ! JUCE_AUDIOPROCESSOR_NO_GUI
     //==============================================================================
     /** Not for public use - this is called before deleting an editor component. */
     void editorBeingDeleted (AudioProcessorEditor*) noexcept;
+   #endif
 
     /** Flags to indicate the type of plugin context in which a processor is being used. */
     enum WrapperType
@@ -1200,6 +1209,7 @@ public:
         wrapperType_AudioUnitv3,
         wrapperType_RTAS,
         wrapperType_AAX,
+        wrapperType_LV2,
         wrapperType_Standalone,
         wrapperType_Unity
     };
@@ -1462,7 +1472,9 @@ private:
 
     //==============================================================================
     Array<AudioProcessorListener*> listeners;
+   #if ! JUCE_AUDIOPROCESSOR_NO_GUI
     Component::SafePointer<AudioProcessorEditor> activeEditor;
+   #endif
     double currentSampleRate = 0;
     int blockSize = 0, latencySamples = 0;
     bool suspended = false;
@@ -1487,10 +1499,11 @@ private:
     #endif
 
     bool textRecursionCheck = false;
-    std::unordered_set<String> paramIDs;
+    std::unordered_set<String> paramIDs, groupIDs;
    #endif
 
     void checkForDuplicateParamID (AudioProcessorParameter*);
+    void checkForDuplicateGroupIDs (const AudioProcessorParameterGroup&);
 
     AudioProcessorListener* getListenerLocked (int) const noexcept;
     void updateSpeakerFormatStrings();

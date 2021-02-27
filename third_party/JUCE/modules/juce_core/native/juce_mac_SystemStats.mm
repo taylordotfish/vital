@@ -132,7 +132,7 @@ static String getOSXVersion()
        #endif
 
         if (dict != nullptr)
-            return nsStringToJuce (dict[nsStringLiteral ("ProductVersion")]);
+            return nsStringToJuce ([dict objectForKey: nsStringLiteral ("ProductVersion")]);
 
         jassertfalse;
         return {};
@@ -158,7 +158,7 @@ SystemStats::OperatingSystemType SystemStats::getOperatingSystemType()
     }
 
     jassert (major == 11);
-    return MacOSX_11_0;
+    return MacOS_11;
    #endif
 }
 

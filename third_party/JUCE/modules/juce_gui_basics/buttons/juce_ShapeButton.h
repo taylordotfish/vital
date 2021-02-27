@@ -88,8 +88,6 @@ public:
                        Colour overColourOn,
                        Colour downColourOn);
 
-    void setShadowColour (Colour shadow) { shadowColour = shadow; }
-
     /** Set whether the button should use the 'on' set of colours when its toggle state is 'on'.
         By default these will be the same as the normal colours but the setOnColours method can be
         used to provide a different set of colours.
@@ -114,8 +112,9 @@ public:
 private:
     //==============================================================================
     Colour normalColour,   overColour,   downColour,
-           normalColourOn, overColourOn, downColourOn, outlineColour, shadowColour;
+           normalColourOn, overColourOn, downColourOn, outlineColour;
     bool useOnColours;
+    DropShadowEffect shadow;
     Path shape;
     BorderSize<int> border;
     bool maintainShapeProportions;

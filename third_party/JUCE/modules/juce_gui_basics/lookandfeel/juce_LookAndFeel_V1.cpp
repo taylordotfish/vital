@@ -41,6 +41,8 @@ LookAndFeel_V1::LookAndFeel_V1()
     setColour (PopupMenu::highlightedBackgroundColourId,  Colour (0xbfa4c2ce));
     setColour (PopupMenu::highlightedTextColourId,        Colours::black);
     setColour (TextEditor::focusedOutlineColourId,  findColour (TextButton::buttonColourId));
+
+    scrollbarShadow.setShadowProperties (DropShadow (Colours::black.withAlpha (0.5f), 2, Point<int>()));
 }
 
 LookAndFeel_V1::~LookAndFeel_V1()
@@ -289,7 +291,7 @@ void LookAndFeel_V1::drawScrollbar (Graphics& g, ScrollBar& bar,
 
 ImageEffectFilter* LookAndFeel_V1::getScrollbarEffect()
 {
-    return nullptr;
+    return &scrollbarShadow;
 }
 
 
@@ -475,7 +477,7 @@ Button* LookAndFeel_V1::createSliderButton (Slider&, const bool isIncrement)
 
 ImageEffectFilter* LookAndFeel_V1::getSliderEffect (Slider&)
 {
-    return nullptr;
+    return &scrollbarShadow;
 }
 
 int LookAndFeel_V1::getSliderThumbRadius (Slider&)

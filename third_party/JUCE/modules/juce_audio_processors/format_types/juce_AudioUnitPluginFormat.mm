@@ -25,6 +25,8 @@
 
 #if JUCE_PLUGINHOST_AU && (JUCE_MAC || JUCE_IOS)
 
+JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+
 #if JUCE_MAC
 #include <AudioUnit/AUCocoaUIView.h>
 #include <CoreAudioKit/AUGenericView.h>
@@ -56,6 +58,10 @@
 
 namespace juce
 {
+
+#if MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_8
+static const uint32 kAudioUnitType_MIDIProcessor = 'aumi';
+#endif
 
 // Change this to disable logging of various activities
 #ifndef AU_LOGGING
@@ -243,7 +249,8 @@ namespace AudioUnitFormatHelpers
                         if (Handle h = Get1IndResource (thngType, i))
                         {
                             HLock (h);
-                            const uint32* const types = (const uint32*) *h;
+                            uint32 types[3];
+                            std::memcpy (types, *h, sizeof (types));
 
                             if (types[0] == kAudioUnitType_MusicDevice
                                  || types[0] == kAudioUnitType_MusicEffect
@@ -273,7 +280,7 @@ namespace AudioUnitFormatHelpers
                     NSBundle* bundle = [[NSBundle alloc] initWithPath: (NSString*) fileOrIdentifier.toCFString()];
 
                     NSArray* audioComponents = [bundle objectForInfoDictionaryKey: @"AudioComponents"];
-                    NSDictionary* dict = audioComponents[0];
+                    NSDictionary* dict = [audioComponents objectAtIndex: 0];
 
                     desc.componentManufacturer = stringToOSType (nsStringToJuce ((NSString*) [dict valueForKey: @"manufacturer"]));
                     desc.componentType         = stringToOSType (nsStringToJuce ((NSString*) [dict valueForKey: @"type"]));
@@ -755,7 +762,7 @@ public:
                         zerostruct (stream); // (can't use "= { 0 }" on this object because it's typedef'ed as a C struct)
                         stream.mSampleRate       = sampleRate;
                         stream.mFormatID         = kAudioFormatLinearPCM;
-                        stream.mFormatFlags      = kAudioFormatFlagsNativeFloatPacked | kAudioFormatFlagIsNonInterleaved | kAudioFormatFlagsNativeEndian;
+                        stream.mFormatFlags      = (int) kAudioFormatFlagsNativeFloatPacked | (int) kAudioFormatFlagIsNonInterleaved | (int) kAudioFormatFlagsNativeEndian;
                         stream.mFramesPerPacket  = 1;
                         stream.mBytesPerPacket   = 4;
                         stream.mBytesPerFrame    = 4;
@@ -1819,12 +1826,12 @@ private:
             default:
                 if (event.mArgument.mProperty.mPropertyID == kAudioUnitProperty_ParameterList)
                 {
-                    updateHostDisplay();
+                    updateHostDisplay (AudioProcessorListener::ChangeDetails().withParameterInfoChanged (true));
                 }
                 else if (event.mArgument.mProperty.mPropertyID == kAudioUnitProperty_PresentPreset)
                 {
                     sendAllParametersChangedEvents();
-                    updateHostDisplay();
+                    updateHostDisplay (AudioProcessorListener::ChangeDetails().withProgramChanged (true));
                 }
                 else if (event.mArgument.mProperty.mPropertyID == kAudioUnitProperty_Latency)
                 {
@@ -2907,5 +2914,7 @@ FileSearchPath AudioUnitPluginFormat::getDefaultLocationsToSearch()
 #undef JUCE_AU_LOG
 
 } // namespace juce
+
+JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
 #endif

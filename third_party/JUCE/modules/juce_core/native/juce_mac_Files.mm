@@ -92,23 +92,22 @@ namespace MacFileHelpers
    #else
     static bool launchExecutable (const String& pathAndArguments)
     {
+        const char* const argv[4] = { "/bin/sh", "-c", pathAndArguments.toUTF8(), nullptr };
+
+#if JUCE_USE_VFORK
+        const auto cpid = vfork();
+#else
         auto cpid = fork();
+#endif
 
         if (cpid == 0)
         {
-            const char* const argv[4] = { "/bin/sh", "-c", pathAndArguments.toUTF8(), nullptr };
-
             // Child process
-            if (execve (argv[0], (char**) argv, nullptr) < 0)
-                exit (0);
-        }
-        else
-        {
-            if (cpid < 0)
-                return false;
+            if (execvp (argv[0], (char**) argv) < 0)
+                _exit (0);
         }
 
-        return true;
+        return cpid >= 0;
     }
    #endif
 }
@@ -201,7 +200,7 @@ File File::getSpecialLocation (const SpecialLocationType type)
 
             case invokedExecutableFile:
                 if (juce_argv != nullptr && juce_argc > 0)
-                    return File::getCurrentWorkingDirectory().getChildFile (String (juce_argv[0]));
+                    return File::getCurrentWorkingDirectory().getChildFile (CharPointer_UTF8 (juce_argv[0]));
                 // deliberate fall-through...
                 JUCE_FALLTHROUGH
 

@@ -25,7 +25,7 @@
 
 #if JUCE_PLUGINHOST_LADSPA && JUCE_LINUX
 
-#include <ladspa.h>
+#include "ladspa.h"
 
 namespace juce
 {
@@ -374,7 +374,7 @@ public:
         destData.setSize ((size_t) numParameters * sizeof (float));
         destData.fillWith (0);
 
-        auto* p = (float*) ((char*) destData.getData());
+        auto* p = unalignedPointerCast<float*> (destData.getData());
 
         for (int i = 0; i < numParameters; ++i)
             if (auto* param = getParameters()[i])
